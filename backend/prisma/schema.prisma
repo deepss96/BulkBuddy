@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String
+  passwordHash String?  // Optional for SSO users
+  googleId     String?  @unique // For Google SSO
+  createdAt            DateTime             @default(now())
+  WhatsAppConnections  WhatsAppConnection[]
+  Contacts             Contact[]
+  GroupJobs            GroupJob[]
+}
+
+model WhatsAppConnection {
+  id        String   @id @default(cuid())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  number    String?
+  status    String   // 'connecting', 'connected', 'disconnected'
+  session   String?  @db.LongText // Serialized session data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Contact {
+  id                    String   @id @default(cuid())
+  userId                Int
+  user                  User     @relation(fields: [userId], references: [id])
+  name                  String?
+  phone                 String
+  isWhatsAppRegistered  Boolean? // null: pending check, true: valid, false: invalid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([userId, phone])
+}
+
+model GroupJob {
+  id              String   @id @default(cuid())
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  connectionId    String
+  name            String
+  totalContacts   Int
+  processedCount  Int      @default(0)
+  status          String   // 'pending', 'processing', 'completed', 'failed'
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
