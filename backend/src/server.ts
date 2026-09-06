@@ -11,14 +11,19 @@ import { startValidationLoop } from './services/validationService';
 
 const fastify = Fastify({ logger: { level: 'error' } });
 
+// Build allowed CORS origins from environment
+const allowedOrigins: string[] = [];
+if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
+if (process.env.EXTRA_CORS_ORIGINS) {
+  process.env.EXTRA_CORS_ORIGINS.split(',').forEach(o => allowedOrigins.push(o.trim()));
+}
+// Always allow localhost in dev, or if no origins configured
+if (process.env.NODE_ENV !== 'production' || allowedOrigins.length === 0) {
+  allowedOrigins.push('http://localhost:3000', 'http://localhost:7001');
+}
+
 fastify.register(cors, {
-  origin: [
-    'http://localhost:3000', 
-    'http://localhost:7001',
-    'http://10.218.166.215:7001',  // Mobile hotspot access
-    'http://192.168.159.1:7001',
-    'http://192.168.226.1:7001',
-  ],
+  origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 });
@@ -46,7 +51,7 @@ if (googleClientId && googleClientSecret && googleClientId !== 'dummy_client_id'
       auth: oauthPlugin.google
     },
     startRedirectPath: '/api/v1/auth/google',
-    callbackUri: 'http://localhost:4000/api/v1/auth/google/callback'
+    callbackUri: `${process.env.BACKEND_URL}/api/v1/auth/google/callback`
   });
 }
 
@@ -65,8 +70,9 @@ import { restoreSessions } from './services/whatsappService';
 
 const start = async () => {
   try {
-    await fastify.listen({ port: 4000, host: '0.0.0.0' });
-    console.log(`Server listening at http://localhost:4000`);
+    const port = Number(process.env.PORT) || 4000;
+    await fastify.listen({ port, host: '0.0.0.0' });
+    console.log(`Server listening on port ${port}`);
     
     // Start background services
     startValidationLoop();

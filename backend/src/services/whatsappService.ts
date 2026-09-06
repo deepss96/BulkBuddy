@@ -50,7 +50,7 @@ setInterval(async () => {
   }
 }, 60 * 1000);
 
-export async function initializeWhatsAppClient(connectionId: string, userId: number, name: string) {
+export async function initializeWhatsAppClient(connectionId: string, userId: string, name: string) {
   if (clients[connectionId]) return;
 
   // Initialize ping so it has 2 minutes to receive the first real heartbeat
@@ -61,6 +61,7 @@ export async function initializeWhatsAppClient(connectionId: string, userId: num
     qrMaxRetries: 3, // Stop generating QR codes if not scanned after 3 attempts
     puppeteer: {
       headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox', 

@@ -99,9 +99,10 @@ export async function googleCallback(request: any, reply: FastifyReply) {
 
     const jwtToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
     
-    reply.redirect(`http://localhost:3000/?token=${jwtToken}`);
+    const frontendUrl = process.env.FRONTEND_URL;
+    reply.redirect(`${frontendUrl}/?token=${jwtToken}`);
   } catch (error) {
     request.server.log.error(error);
-    reply.redirect('http://localhost:3000/?error=oauth_failed');
+    reply.redirect(`${process.env.FRONTEND_URL}/?error=oauth_failed`);
   }
 }

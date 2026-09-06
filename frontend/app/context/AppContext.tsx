@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 
 type Page = 'dashboard' | 'bulk-messages' | 'scheduled' | 'templates' | 'broadcast' | 'contacts' | 'groups' | 'jobs' | 'logs' | 'settings' | 'connections' | 'imports' | 'profile';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface User {
   id: number;
