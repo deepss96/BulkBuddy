@@ -73,6 +73,11 @@ const start = async () => {
     const port = Number(process.env.PORT) || 4000;
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Server listening on port ${port}`);
+    // Test database connection
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    await prisma.$connect();
+    console.log("Database connected successfully! 🚀");
     
     // Start background services
     startValidationLoop();
