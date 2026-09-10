@@ -172,6 +172,16 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
             });
             const pollData = await pollRes.json();
 
+            if (!pollRes.ok) {
+              clearInterval(interval);
+              if (isMounted) {
+                setIsConnecting(false);
+                toast.error(pollData.error || 'Connection failed');
+                onClose();
+              }
+              return;
+            }
+
             setDebugLog(JSON.stringify(pollData).substring(0, 50));
 
             if (pollData.status === 'connected') {

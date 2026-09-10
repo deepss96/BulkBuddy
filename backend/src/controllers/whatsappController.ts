@@ -50,9 +50,15 @@ export async function pollQr(request: any, reply: FastifyReply) {
       }
     }
 
+    const { clients } = require('../services/whatsappService');
+    const isClientAlive = !!clients[id];
+
     const rawQr = qrCodes[id];
     if (rawQr) {
       return { status: 'connecting', qr: rawQr };
+    } else if (!isClientAlive) {
+      // The client was deleted (probably failed to start Chrome)
+      return reply.status(500).send({ error: 'Failed to start WhatsApp client. This usually means the server is missing Chrome/Puppeteer dependencies.' });
     } else {
       return { status: 'connecting', qr: null };
     }
