@@ -248,13 +248,13 @@ export default function ContactsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>Contacts</div>
-          <div style={{ fontSize: 12, color: '#6b7280' }}>{contacts.length.toLocaleString()} total imported contacts</div>
-        </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-
+      <div style={{ padding: '12px 20px', borderBottom: '1px solid #e5e7eb', background: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>Contacts</div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>{contacts.length.toLocaleString()} total imported contacts</div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <button 
               className="btn btn-secondary btn-sm"
               style={{ whiteSpace: 'nowrap' }}
@@ -283,7 +283,7 @@ export default function ContactsPage() {
               <Upload size={13} /> Import
             </button>
             <button 
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm desktop-only"
               style={{ whiteSpace: 'nowrap' }}
               onClick={() => {
                 if (selected.length > 1024) {
@@ -300,6 +300,28 @@ export default function ContactsPage() {
               Create Group
             </button>
           </div>
+        </div>
+
+        {/* Mobile only Create Group Row */}
+        <div className="mobile-only" style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', marginTop: 12 }}>
+          <button 
+            className="btn btn-primary btn-sm"
+            style={{ whiteSpace: 'nowrap' }}
+            onClick={() => {
+              if (selected.length > 1024) {
+                toast.error('1024 WhatsApp users are selected! WhatsApp only allows up to 1024 members per group.');
+                return;
+              }
+              if (selected.length === 0) {
+                toast.error('Please select at least one contact.');
+                return;
+              }
+              setShowGroupModal(true);
+            }}
+          >
+            Create Group
+          </button>
+        </div>
 
         {selected.length > 0 && (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: 12, color: '#166534', marginTop: 12 }}>

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import oauthPlugin from '@fastify/oauth2';
@@ -11,19 +12,8 @@ import { startValidationLoop } from './services/validationService';
 
 const fastify = Fastify({ logger: { level: 'error' } });
 
-// Build allowed CORS origins from environment
-const allowedOrigins: string[] = [];
-if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
-if (process.env.EXTRA_CORS_ORIGINS) {
-  process.env.EXTRA_CORS_ORIGINS.split(',').forEach(o => allowedOrigins.push(o.trim()));
-}
-// Always allow localhost in dev, or if no origins configured
-if (process.env.NODE_ENV !== 'production' || allowedOrigins.length === 0) {
-  allowedOrigins.push('http://localhost:3000', 'http://localhost:7001');
-}
-
 fastify.register(cors, {
-  origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
+  origin: true, // Allow any origin dynamically
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 });

@@ -127,3 +127,65 @@ html, body {
 .status-dot.red { background: #ef4444; }
 .status-dot.yellow { background: #f59e0b; }
 .status-dot.gray { background: #9ca3af; }
+
+/* Responsive Mobile QR Modal */
+@media (max-width: 768px) {
+  /* Make the modal itself have margins on the screen */
+  .modal {
+    width: calc(100% - 32px) !important;
+    max-height: 85vh !important;
+  }
+  /* Reduce padding on the modal header/children wrappers */
+  .modal > div:first-child {
+    padding: 6px 12px !important;
+    border-bottom: none !important;
+  }
+  .modal > div:first-child > div:first-child {
+    display: none !important;
+  }
+  .modal > div:last-child {
+    padding: 0 10px 15px 10px !important;
+  }
+  
+  .qr-modal-container {
+    flex-direction: column !important;
+    padding: 5px !important;
+  }
+  .qr-modal-left {
+    padding-right: 0 !important;
+    margin-bottom: 10px !important;
+  }
+  .qr-modal-title {
+    font-size: 18px !important;
+    margin-bottom: 12px !important;
+    text-align: center !important;
+    font-weight: 500 !important;
+  }
+  .qr-modal-left > div > div > div:nth-child(2) {
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+  }
+  .qr-modal-left > div > div {
+    margin-bottom: 12px !important;
+  }
+  .qr-modal-right {
+    width: 100% !important;
+    padding-top: 0 !important;
+  }
+  .qr-modal-spinner-container, .qr-modal-qr-container svg {
+    width: 240px !important;
+    height: 240px !important;
+  }
+  .qr-modal-help {
+    margin-top: 10px !important;
+    font-size: 13px !important;
+    text-align: center !important;
+  }
+}
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+}
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
+  .header-row-mobile { display: none !important; }
+}

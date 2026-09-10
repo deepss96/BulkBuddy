@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { MessageSquare, ArrowRight, CheckCircle2, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -12,10 +12,17 @@ export default function AuthPage() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authSuccess, setAuthSuccess] = useState(false);
+  const submitTimeRef = useRef<number>(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError('');
+    // Instant feedback — loader starts at 0ms
+    setIsSubmitting(true);
+    submitTimeRef.current = Date.now();
 
     try {
       const url = isLogin ? `${apiUrl}/api/v1/auth/login` : `${apiUrl}/api/v1/auth/signup`;
@@ -30,9 +37,13 @@ export default function AuthPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Authentication failed');
 
+      // Show success overlay briefly then transition
+      setAuthSuccess(true);
       await login(data.token);
     } catch (err: any) {
       setError(err.message);
+      setIsSubmitting(false);
+      setAuthSuccess(false);
     }
   };
 
@@ -53,7 +64,37 @@ export default function AuthPage() {
           .auth-desktop { display: none !important; }
           .auth-mobile { display: flex !important; }
         }
+        @keyframes auth-spin { to { transform: rotate(360deg); } }
+        @keyframes auth-fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes auth-success-scale { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .auth-loader-spin { animation: auth-spin 0.65s linear infinite; }
+        .auth-overlay { animation: auth-fade-in 0.2s ease; }
+        .auth-success-icon { animation: auth-success-scale 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        .auth-btn-loading { pointer-events: none; opacity: 0.85; }
+        .auth-input-disabled { opacity: 0.6; pointer-events: none; }
       `}</style>
+
+      {/* Full-screen success/loading overlay */}
+      {authSuccess && (
+        <div className="auth-overlay" style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24
+        }}>
+          <div className="auth-success-icon" style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #25d366, #128c7e)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 40px rgba(37,211,102,0.4)'
+          }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div style={{ color: '#fff', fontSize: 18, fontWeight: 600 }}>Signing you in...</div>
+          <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#25d366', borderRadius: '50%' }} className="auth-loader-spin" />
+        </div>
+      )}
 
       {/* ========================================= */}
       {/* MOBILE VIEW (Only visible on small screens) */}
@@ -159,9 +200,18 @@ export default function AuthPage() {
 
             <button
               type="submit"
-              style={{ width: '100%', padding: '14px', background: '#25d366', color: 'white', borderRadius: '12px', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, border: 'none', cursor: 'pointer' }}
+              disabled={isSubmitting}
+              className={isSubmitting ? 'auth-btn-loading' : ''}
+              style={{ width: '100%', padding: '14px', background: '#25d366', color: 'white', borderRadius: '12px', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, border: 'none', cursor: isSubmitting ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}
             >
-              {isLogin ? 'Sign In' : 'Create Account'} <ArrowRight size={16} />
+              {isSubmitting ? (
+                <>
+                  <div style={{ width: 18, height: 18, border: '2.5px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%' }} className="auth-loader-spin" />
+                  {isLogin ? 'Signing in...' : 'Creating account...'}
+                </>
+              ) : (
+                <>{isLogin ? 'Sign In' : 'Create Account'} <ArrowRight size={16} /></>
+              )}
             </button>
           </form>
 
@@ -352,10 +402,18 @@ export default function AuthPage() {
 
               <button 
                 type="submit" 
-                className="btn btn-primary" 
-                style={{ padding: '12px', fontSize: 15, justifyContent: 'center', marginTop: 8 }}
+                disabled={isSubmitting}
+                className={`btn btn-primary${isSubmitting ? ' auth-btn-loading' : ''}`}
+                style={{ padding: '12px', fontSize: 15, justifyContent: 'center', marginTop: 8, cursor: isSubmitting ? 'not-allowed' : 'pointer', gap: 8 }}
               >
-                {isLogin ? 'Sign In' : 'Create Account'} <ArrowRight size={16} />
+                {isSubmitting ? (
+                  <>
+                    <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%' }} className="auth-loader-spin" />
+                    {isLogin ? 'Signing in...' : 'Creating account...'}
+                  </>
+                ) : (
+                  <>{isLogin ? 'Sign In' : 'Create Account'} <ArrowRight size={16} /></>
+                )}
               </button>
             </form>
 
