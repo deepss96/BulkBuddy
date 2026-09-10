@@ -16,8 +16,8 @@ setInterval(async () => {
     // or if the client has been alive for more than 2 minutes without ANY heartbeat.
     // We will initialize lastPing to Date.now() when the client is created.
     const ping = lastPing[connectionId];
-    if (ping && now - ping > 2 * 60 * 1000) {
-      console.log(`[WhatsApp ${connectionId}] No heartbeat received for 2 mins. Disconnecting for safety...`);
+    if (ping && now - ping > 5 * 60 * 1000) {
+      console.log(`[WhatsApp ${connectionId}] No heartbeat received for 5 mins. Disconnecting for safety...`);
       await disconnectWhatsAppClient(connectionId);
       delete lastPing[connectionId];
     }
@@ -50,27 +50,44 @@ setInterval(async () => {
   }
 }, 60 * 1000);
 
-export async function initializeWhatsAppClient(connectionId: string, userId: string, name: string) {
+export async function initializeWhatsAppClient(connectionId: string, userId: string, name: string, userAgent?: string) {
   if (clients[connectionId]) return;
+
+  // Use the real browser UA from the user's device, fallback to a generic modern Chrome UA
+  const resolvedUserAgent = userAgent ||
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
 
   // Initialize ping so it has 2 minutes to receive the first real heartbeat
   lastPing[connectionId] = Date.now();
 
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: connectionId }),
-    qrMaxRetries: 3, // Stop generating QR codes if not scanned after 3 attempts
+    qrMaxRetries: 5,
+    // 120 seconds timeout — 0 gets converted to 30s by the library, which is too short
+    authTimeoutMs: 120000,
+    // Use local cache instead of remote to avoid fetching issues
+    webVersionCache: {
+      type: 'local',
+    },
+    // Dynamically use the real User Agent from the user's browser
+    userAgent: resolvedUserAgent,
     puppeteer: {
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox', 
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
         '--disable-extensions',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection'
       ]
     }
   });
@@ -173,7 +190,20 @@ export async function initializeWhatsAppClient(connectionId: string, userId: str
   });
 
   clients[connectionId] = client;
-  await client.initialize();
+
+  // initialize() can throw 'auth timeout' if WhatsApp Web JS doesn't load in time.
+  // We wrap it so the error is handled gracefully instead of crashing.
+  try {
+    await client.initialize();
+  } catch (err: any) {
+    const errMsg = typeof err === 'string' ? err : err?.message || 'unknown';
+    console.error(`[WhatsApp ${connectionId}] initialize() failed: ${errMsg}`);
+    // Cleanup on failure so stale state doesn't block next attempt
+    delete clients[connectionId];
+    delete qrCodes[connectionId];
+    delete lastPing[connectionId];
+    try { await client.destroy(); } catch (_) {}
+  }
 }
 
 export async function disconnectWhatsAppClient(connectionId: string) {

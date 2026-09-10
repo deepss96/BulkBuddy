@@ -18,13 +18,17 @@ export async function getConnections(request: any, reply: FastifyReply) {
 
 export async function createConnection(request: any, reply: FastifyReply) {
   try {
-    const { name } = request.body || { name: 'New Phone' };
+    const { name, userAgent } = request.body || { name: 'New Phone' };
     
-    // Generate a temporary ID for tracking the in-progress connection
-    const tempId = `conn_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    // Use the userAgent sent by the frontend (the real browser UA of the user's device)
+    // Fallback to the HTTP request's own user-agent header if not provided
+    const resolvedUserAgent = userAgent || request.headers['user-agent'];
 
-    // Start whatsapp client in background
-    initializeWhatsAppClient(tempId, request.user.userId, name).catch(console.error);
+    // Generate a temporary ID for tracking the in-progress connection (Must be valid 24-char hex for MongoDB ObjectID)
+    const tempId = require('crypto').randomBytes(12).toString('hex');
+
+    // Start whatsapp client in background with the real user agent
+    initializeWhatsAppClient(tempId, request.user.userId, name, resolvedUserAgent).catch(console.error);
 
     return { id: tempId };
   } catch (error) {
@@ -55,6 +59,32 @@ export async function pollQr(request: any, reply: FastifyReply) {
   } catch (error) {
     request.server.log.error(error);
     return reply.status(500).send({ error: 'Failed to fetch QR' });
+  }
+}
+
+export async function requestPairingCode(request: any, reply: FastifyReply) {
+  try {
+    const { connectionId, phoneNumber } = request.body;
+    if (!connectionId || !phoneNumber) {
+      return reply.status(400).send({ error: 'Missing connectionId or phoneNumber' });
+    }
+
+    const { clients } = require('../services/whatsappService');
+    const client = clients[connectionId];
+
+    if (!client) {
+      return reply.status(400).send({ error: 'WhatsApp client is not active. Please reconnect.' });
+    }
+
+    // Clean phone number: remove all non-numeric characters
+    const cleanPhone = phoneNumber.replace(/[^\d]/g, '');
+
+    // Request the pairing code
+    const code = await client.requestPairingCode(cleanPhone);
+    return reply.send({ code });
+  } catch (error) {
+    request.server.log.error(error);
+    return reply.status(500).send({ error: 'Failed to request pairing code' });
   }
 }
 

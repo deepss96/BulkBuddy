@@ -68,10 +68,10 @@ export function EmptyState({ icon, title, desc }: { icon: any; title: string; de
 export function Modal({ title, onClose, children, width = 520 }: { title: string; onClose: () => void; children: any; width?: number }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal animate-scale-in" style={{ maxWidth: width, maxHeight: '90vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+      <div className="modal animate-scale-in" style={{ maxWidth: width, maxHeight: '90vh', overflow: 'auto', position: 'relative' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{title}</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1, padding: 2 }}>×</button>
+          <button onClick={onClose} style={{ background: '#f3f4f6', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 20, lineHeight: 1, padding: '6px 10px', borderRadius: 6, transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
         </div>
         <div style={{ padding: 20 }}>{children}</div>
       </div>
