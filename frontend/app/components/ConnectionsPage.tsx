@@ -136,8 +136,10 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
     let interval: any;
     let isMounted = true;
     let createdConnectionId: string | null = null;
+    let timerStopped = false; // To ensure console.timeEnd only runs once
 
     const startConnection = async () => {
+      console.time('QR_LOAD_TIME');
       const token = localStorage.getItem('token');
       try {
         const res = await fetch(`${apiUrl}/api/v1/whatsapp/connect`, {
@@ -193,6 +195,10 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
               onConnected();
             } else if (pollData.qr) {
               // QR received — make sure overlay is hidden, show QR
+              if (!timerStopped) {
+                console.timeEnd('QR_LOAD_TIME');
+                timerStopped = true;
+              }
               if (isMounted) setIsConnecting(false);
               setQrCode(pollData.qr);
               setStage('qr');
