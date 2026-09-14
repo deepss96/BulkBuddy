@@ -206,6 +206,19 @@ app.get('/api/whatsapp/groups/:id', async (req, res) => {
   }
 });
 
+app.post('/api/whatsapp/pairing-code', async (req, res) => {
+  const { connectionId, phoneNumber } = req.body;
+  const client = clients[connectionId];
+  if (!client) return res.status(400).json({ error: 'Client not connected' });
+  try {
+    const cleanPhone = phoneNumber.replace(/[^\d]/g, '');
+    const code = await client.requestPairingCode(cleanPhone);
+    res.json({ code });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 4001;
 app.listen(PORT, () => {
   console.log(`WhatsApp Microservice running on port ${PORT}`);

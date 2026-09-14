@@ -218,3 +218,18 @@ export async function getGroups(request: any, reply: FastifyReply) {
     return reply.status(500).send({ error: 'Failed to fetch groups' });
   }
 }
+
+export async function requestPairingCode(request: any, reply: FastifyReply) {
+  try {
+    const { connectionId, phoneNumber } = request.body;
+    if (!connectionId || !phoneNumber) {
+      return reply.status(400).send({ error: 'Missing connectionId or phoneNumber' });
+    }
+
+    const res = await axios.post(`${MICROSERVICE_URL}/api/whatsapp/pairing-code`, { connectionId, phoneNumber });
+    return reply.send(res.data);
+  } catch (error) {
+    request.server.log.error(error);
+    return reply.status(500).send({ error: 'Failed to request pairing code from microservice' });
+  }
+}
