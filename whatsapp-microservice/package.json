@@ -4,8 +4,7 @@
   "description": "Standalone WhatsApp API for BulkBuddy",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "start": "node index.js"
   },
   "dependencies": {
     "@sparticuz/chromium": "^153.0.0",
