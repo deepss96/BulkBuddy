@@ -26,16 +26,7 @@ app.post('/api/whatsapp/init', async (req, res) => {
 
   statuses[connectionId] = 'connecting';
   console.log(`[Microservice] Attempting to launch Puppeteer for ${connectionId}...`);
-  
   try {
-    let executablePath = '';
-    try {
-      const chromium = require('@sparticuz/chromium');
-      executablePath = await chromium.executablePath();
-    } catch (e) {
-      console.log('Sparticuz Chromium not found or failed, falling back to bundled Puppeteer.');
-    }
-
     const client = new Client({
       authStrategy: new LocalAuth({ clientId: connectionId }),
       authTimeoutMs: 120000,
@@ -43,7 +34,6 @@ app.post('/api/whatsapp/init', async (req, res) => {
       userAgent: userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
       puppeteer: {
         headless: true, // Always headless
-        ...(executablePath ? { executablePath } : {}), // Only use custom path if it exists
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
