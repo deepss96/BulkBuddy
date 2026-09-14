@@ -177,7 +177,6 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
 
             if (!pollRes.ok) {
               console.error(`[Frontend] Poll error for ${data.id}:`, pollData);
-              clearInterval(interval);
               if (isMounted) {
                 setIsConnecting(false);
                 toast.error(pollData.error || 'Connection failed');
@@ -191,10 +190,10 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
             if (pollData.status === 'connected') {
               console.log(`[Frontend] ${data.id} is connected!`);
               createdConnectionId = null;
-              clearInterval(interval);
               if (isMounted) setIsConnecting(true);
               toast.success('WhatsApp connected successfully!');
               onConnected();
+              return; // Stop polling
             } else if (pollData.qr) {
               console.log(`[Frontend] QR received for ${data.id}`);
               if (!timerStopped) {
@@ -204,8 +203,8 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
               if (isMounted) setIsConnecting(false);
               setQrCode(pollData.qr);
               setStage('qr');
-              clearInterval(interval);
-              interval = setInterval(poll, 3000);
+              if (isMounted) setTimeout(poll, 3000); // Slower polling once QR is visible
+              return;
             } else if (!pollData.qr && stage === 'qr') {
               console.log(`[Frontend] QR vanished, assuming scanned for ${data.id}`);
               if (isMounted) setIsConnecting(true);
@@ -214,11 +213,12 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
             console.error(`[Frontend] Poll try-catch error:`, err);
             setDebugLog(`Error: ${err.message}`);
           }
+          // Continue fast polling if not connected and no QR yet
+          if (isMounted) setTimeout(poll, 800);
         };
 
         console.log(`[Frontend] Starting poll loop for ${data.id}`);
         poll();
-        interval = setInterval(poll, 800);
       } catch (e: any) {
         console.error(`[Frontend] Start connection error:`, e);
         setDebugLog(`Start Error: ${e.message}`);
@@ -395,12 +395,6 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
                     bgColor="#ffffff"
                     fgColor="#111827"
                     level="M"
-                    imageSettings={{
-                      src: '/icon.png',
-                      height: 50,
-                      width: 50,
-                      excavate: true
-                    }}
                   />
                 </div>
               )}
