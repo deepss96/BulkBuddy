@@ -22,24 +22,29 @@ app.post('/api/whatsapp/init', async (req, res) => {
 
   statuses[connectionId] = 'connecting';
   
-  const client = new Client({
-    authStrategy: new LocalAuth({ clientId: connectionId }),
-    authTimeoutMs: 120000,
-    qrMaxRetries: 5,
-    userAgent: userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-    puppeteer: {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    }
-  });
+  try {
+    const chromium = require('@sparticuz/chromium');
+    
+    const client = new Client({
+      authStrategy: new LocalAuth({ clientId: connectionId }),
+      authTimeoutMs: 120000,
+      qrMaxRetries: 5,
+      userAgent: userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+      puppeteer: {
+        headless: chromium.headless,
+        executablePath: await chromium.executablePath(),
+        args: [
+          ...chromium.args,
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu'
+        ]
+      }
+    });
 
   client.on('qr', (qr) => {
     qrCodes[connectionId] = qr;
@@ -86,16 +91,15 @@ app.post('/api/whatsapp/init', async (req, res) => {
 
   clients[connectionId] = client;
 
-  try {
-    client.initialize().catch(err => {
-      console.error(`[WhatsApp ${connectionId}] Init Error:`, err);
-      statuses[connectionId] = 'failed';
-      delete clients[connectionId];
-    });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  client.initialize().catch(err => {
+    console.error(`[WhatsApp ${connectionId}] Init Error:`, err);
+    statuses[connectionId] = 'failed';
+    delete clients[connectionId];
+  });
+  res.json({ success: true });
+} catch (err) {
+  res.status(500).json({ error: err.message });
+}
 });
 
 app.get('/api/whatsapp/qr/:id', (req, res) => {
