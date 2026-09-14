@@ -7,6 +7,8 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+app.get('/', (req, res) => res.send('WhatsApp Microservice is running!'));
+
 const clients = {};
 const qrCodes = {};
 const statuses = {}; // 'connecting', 'connected', 'disconnected', 'failed'
