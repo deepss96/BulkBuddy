@@ -20,32 +20,28 @@ export async function getConnections(request: any, reply: FastifyReply) {
 
 export async function createConnection(request: any, reply: FastifyReply) {
   try {
-    const { name, userAgent } = request.body || { name: 'New Phone' };
-    const resolvedUserAgent = userAgent || request.headers['user-agent'];
-    const tempId = require('crypto').randomBytes(12).toString('hex');
-
-    // Create placeholder connection in DB
+    const { name, userAgent } = request.body;
+    console.log(`[Backend] createConnection called for user ${request.user.userId}`);
     // @ts-ignore
-    await prisma.whatsAppConnection.upsert({
-      where: { id: tempId },
-      update: { status: 'connecting', name },
-      create: {
-        id: tempId,
+    const connection = await prisma.whatsAppConnection.create({
+      data: {
         userId: request.user.userId,
-        name,
+        name: name || 'WhatsApp Device',
         status: 'connecting',
-        number: 'Loading...'
       }
     });
 
-    // Fire and forget to microservice
-    axios.post(`${MICROSERVICE_URL}/api/whatsapp/init`, {
-      connectionId: tempId,
-      userAgent: resolvedUserAgent
-    }).catch(err => console.error(`[Microservice Error] Init failed:`, err.message));
-
-    return { id: tempId };
+    console.log(`[Backend] Calling microservice /init for ${connection.id}`);
+    try {
+      await axios.post(`${MICROSERVICE_URL}/api/whatsapp/init`, { connectionId: connection.id, userAgent });
+      console.log(`[Backend] Microservice /init succeeded for ${connection.id}`);
+    } catch (err: any) {
+      console.error(`[Backend] Microservice /init failed for ${connection.id}:`, err.message);
+    }
+    
+    return reply.send(connection);
   } catch (error) {
+    console.error('[Backend] createConnection DB Error:', error);
     request.server.log.error(error);
     return reply.status(500).send({ error: 'Failed to create connection' });
   }
@@ -53,46 +49,29 @@ export async function createConnection(request: any, reply: FastifyReply) {
 
 export async function pollQr(request: any, reply: FastifyReply) {
   try {
-    const { id } = request.params;
+    const { id } = request.params as { id: string };
+    console.log(`[Backend] pollQr called for ${id}`);
     
-    try {
-      const msRes = await axios.get(`${MICROSERVICE_URL}/api/whatsapp/qr/${id}`);
-      const data = msRes.data;
-
-      // Update DB if connected
-      if (data.status === 'connected' && data.info) {
-        // @ts-ignore
-        await prisma.whatsAppConnection.updateMany({
-          where: { id },
-          data: { 
-            status: 'connected',
-            number: data.info.number,
-            name: data.info.name
-          }
-        });
-      } else if (data.status === 'failed' || data.status === 'disconnected') {
-        // @ts-ignore
-        await prisma.whatsAppConnection.updateMany({
-          where: { id },
-          data: { status: 'disconnected' }
-        });
-      }
-
-      return { status: data.status, qr: data.qr || null };
-    } catch (msErr: any) {
-      if (msErr.response?.status === 404) {
-        // @ts-ignore
-        const dbConn = await prisma.whatsAppConnection.findUnique({ where: { id } });
-        if (dbConn && dbConn.status === 'connected') {
-            return { status: 'connected', qr: null };
-        }
-        return reply.status(500).send({ error: 'Failed to start WhatsApp client on microservice.' });
-      }
-      throw msErr;
+    const res = await axios.get(`${MICROSERVICE_URL}/api/whatsapp/qr/${id}`);
+    console.log(`[Backend] pollQr response from microservice for ${id}:`, Object.keys(res.data));
+    
+    // Update DB status based on microservice status
+    if (res.data.status === 'connected') {
+      await prisma.whatsAppConnection.update({
+        where: { id },
+        data: { status: 'connected', number: res.data.info?.number, name: res.data.info?.name }
+      });
+    } else if (res.data.status === 'failed' || res.data.status === 'disconnected') {
+      await prisma.whatsAppConnection.update({
+        where: { id },
+        data: { status: 'disconnected' }
+      });
     }
-  } catch (error) {
-    request.server.log.error(error);
-    return reply.status(500).send({ error: 'Failed to fetch QR from microservice' });
+
+    return reply.send(res.data);
+  } catch (error: any) {
+    console.error(`[Backend] pollQr error for microservice:`, error.message);
+    return reply.status(500).send({ error: 'Failed to poll QR from microservice' });
   }
 }
 

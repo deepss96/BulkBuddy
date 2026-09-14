@@ -16,11 +16,16 @@ const clientInfo = {};
 
 app.post('/api/whatsapp/init', async (req, res) => {
   const { connectionId, userAgent } = req.body;
+  console.log(`[Microservice] /init called for ${connectionId}`);
   if (!connectionId) return res.status(400).json({ error: 'Missing connectionId' });
 
-  if (clients[connectionId]) return res.json({ success: true, message: 'Already running' });
+  if (clients[connectionId]) {
+    console.log(`[Microservice] Client already exists for ${connectionId}`);
+    return res.json({ success: true, message: 'Already running' });
+  }
 
   statuses[connectionId] = 'connecting';
+  console.log(`[Microservice] Attempting to launch Puppeteer for ${connectionId}...`);
   
   try {
     const chromium = require('@sparticuz/chromium');

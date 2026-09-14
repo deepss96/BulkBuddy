@@ -164,17 +164,19 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
         createdConnectionId = data.id;
         setConnectionId(data.id);
 
-        // Poll function — runs immediately then on interval
         const poll = async () => {
           if (!isMounted) return;
           try {
+            console.log(`[Frontend] Polling QR for connection ${data.id}...`);
             const pollRes = await fetch(`${apiUrl}/api/v1/whatsapp/qr/${data.id}`, {
               headers: { 'Authorization': `Bearer ${token}` },
               cache: 'no-store'
             });
             const pollData = await pollRes.json();
+            console.log(`[Frontend] Poll response for ${data.id}:`, pollData);
 
             if (!pollRes.ok) {
+              console.error(`[Frontend] Poll error for ${data.id}:`, pollData);
               clearInterval(interval);
               if (isMounted) {
                 setIsConnecting(false);
@@ -187,14 +189,14 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
             setDebugLog(JSON.stringify(pollData).substring(0, 50));
 
             if (pollData.status === 'connected') {
+              console.log(`[Frontend] ${data.id} is connected!`);
               createdConnectionId = null;
               clearInterval(interval);
-              // Show connecting overlay instantly before success toast
               if (isMounted) setIsConnecting(true);
               toast.success('WhatsApp connected successfully!');
               onConnected();
             } else if (pollData.qr) {
-              // QR received — make sure overlay is hidden, show QR
+              console.log(`[Frontend] QR received for ${data.id}`);
               if (!timerStopped) {
                 console.timeEnd('QR_LOAD_TIME');
                 timerStopped = true;
@@ -202,24 +204,23 @@ function QRModal({ onClose, onConnected, apiUrl }: { onClose: () => void; onConn
               if (isMounted) setIsConnecting(false);
               setQrCode(pollData.qr);
               setStage('qr');
-              // Switch to slow polling now that QR is visible
               clearInterval(interval);
               interval = setInterval(poll, 3000);
             } else if (!pollData.qr && stage === 'qr') {
-              // We were showing QR but now it's gone AND not yet connected
-              // → This means user JUST scanned the QR. Show overlay NOW.
+              console.log(`[Frontend] QR vanished, assuming scanned for ${data.id}`);
               if (isMounted) setIsConnecting(true);
             }
-            // else: still in initial loading phase (stage === 'loading'), keep fast polling
           } catch (err: any) {
+            console.error(`[Frontend] Poll try-catch error:`, err);
             setDebugLog(`Error: ${err.message}`);
           }
         };
 
-        // 🚀 Fire first poll IMMEDIATELY (no wait), then every 800ms until QR appears
+        console.log(`[Frontend] Starting poll loop for ${data.id}`);
         poll();
         interval = setInterval(poll, 800);
       } catch (e: any) {
+        console.error(`[Frontend] Start connection error:`, e);
         setDebugLog(`Start Error: ${e.message}`);
       }
     };
