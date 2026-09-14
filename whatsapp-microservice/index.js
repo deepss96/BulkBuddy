@@ -28,7 +28,8 @@ app.post('/api/whatsapp/init', async (req, res) => {
   console.log(`[Microservice] Attempting to launch Puppeteer for ${connectionId}...`);
   
   try {
-    const puppeteerArgs = [
+    let executablePath = '';
+    let puppeteerArgs = [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
@@ -38,6 +39,15 @@ app.post('/api/whatsapp/init', async (req, res) => {
       '--disable-gpu'
     ];
 
+    try {
+      const chromium = require('@sparticuz/chromium').default;
+      executablePath = await chromium.executablePath();
+      puppeteerArgs = chromium.args;
+      console.log(`[Microservice] Sparticuz path: ${executablePath}`);
+    } catch (e) {
+      console.log('[Microservice] Sparticuz Chromium not found or failed, falling back to bundled.', e.message);
+    }
+
     const client = new Client({
       authStrategy: new LocalAuth({ clientId: connectionId }),
       authTimeoutMs: 120000,
@@ -45,6 +55,7 @@ app.post('/api/whatsapp/init', async (req, res) => {
       userAgent: userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
       puppeteer: {
         headless: true,
+        ...(executablePath ? { executablePath } : {}),
         args: puppeteerArgs
       }
     });
