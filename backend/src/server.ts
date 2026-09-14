@@ -56,8 +56,6 @@ fastify.register(userRoutes, { prefix: '/api/v1/user' });
 fastify.register(whatsappRoutes, { prefix: '/api/v1/whatsapp' });
 fastify.register(contactRoutes, { prefix: '/api/v1/contacts' });
 
-import { restoreSessions } from './services/whatsappService';
-
 const start = async () => {
   try {
     const port = Number(process.env.PORT) || 4000;
@@ -71,7 +69,6 @@ const start = async () => {
     
     // Start background services
     startValidationLoop();
-    await restoreSessions();
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
